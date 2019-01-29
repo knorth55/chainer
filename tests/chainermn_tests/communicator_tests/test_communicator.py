@@ -44,6 +44,9 @@ class ExampleModel(chainer.Chain):
             self.c = chainer.links.Linear(None, 5, initialW=W,
                                           initial_bias=bias)
 
+    def __call__(self):
+        return chainer.Variable(np.array(0.0), dtype=np.float32)
+
 
 class Param(object):
     def __init__(self, param):
@@ -234,6 +237,12 @@ def check_allreduce_grad_empty(communicator, model):
                                         (base + 1) * np.ones((4, 3)))
 
 
+def check_none_grad_loss(communicator, model):
+    with pytest.raises(ValueError):
+        loss = model()
+        loss.backward()
+
+
 def check_send_recv(param, use_gpu):
     communicator = create_communicator(param, use_gpu)
 
@@ -265,6 +274,7 @@ def check_collective_communication(param, use_gpu):
     check_bcast_data(communicator, model)
     check_allreduce_grad(communicator, model)
     check_allreduce_grad_empty(communicator, model)
+    check_none_grad_loss(communicator, model)
     # barrier() requires before destructor of PureNcclCommunicator
     # because communication may not be finished.
     communicator.mpi_comm.barrier()
